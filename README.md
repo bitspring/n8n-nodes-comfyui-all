@@ -1,8 +1,8 @@
-# n8n-nodes-comfyui-all
+# n8n-nodes-comfyui-aio
 
-> Execute ComfyUI workflows in n8n - Generate images, videos, and more with AI!
+> Execute ComfyUI workflows in n8n - Generate images, videos, audios and more with AI! (All-In-One)
 
-[![npm version](https://badge.fury.io/js/n8n-nodes-comfyui-all.svg)](https://www.npmjs.org/package/n8n-nodes-comfyui-all)
+[![npm version](https://badge.fury.io/js/n8n-nodes-comfyui-aio.svg)](https://www.npmjs.org/package/n8n-nodes-comfyui-aio)
 
 ## Video Tutorials
 
@@ -15,19 +15,21 @@
 
 This package adds **one intelligent node** to n8n that automatically detects how it's being used:
 
-**ComfyUI Node** - Universal ComfyUI workflow executor
+**ComfyUI Node** - Universal ComfyUI workflow executor (All-In-One)
 - ✅ **Auto-detects execution mode** (Tool for AI Agents or Action for workflows)
 - ✅ **Manual mode override** available
 - ✅ **Works with AI Agents** as a tool
 - ✅ **Works in regular workflows** with full binary support
-- ✅ **Supports URL and binary image input**
+- ✅ **Supports image, video and audio input** (URL and binary)
+- ✅ **Generate images, videos, and audios**
 - ✅ **Dynamic parameter overrides**
 
 You can use this node to:
 - Generate images from text prompts
 - Process and edit images
 - Generate videos
-- Use AI Agents to create images automatically
+- Generate and process audio
+- Use AI Agents to create images/videos/audios automatically
 - And much more with any ComfyUI workflow!
 
 ---
@@ -36,10 +38,10 @@ You can use this node to:
 
 ### 1. Install
 ```bash
-# n8n Cloud: Settings → Community Nodes → Install → n8n-nodes-comfyui-all
+# n8n Cloud: Settings → Community Nodes → Install → n8n-nodes-comfyui-aio
 # Self-hosted:
 cd ~/.n8n
-npm install n8n-nodes-comfyui-all
+npm install n8n-nodes-comfyui-aio
 ```
 
 ### 2. Run ComfyUI
@@ -49,445 +51,206 @@ npm install n8n-nodes-comfyui-all
 # Default: http://127.0.0.1:8188
 ```
 
-**Option B: RunningHub Cloud Service**
-```bash
-# RunningHub provides cloud ComfyUI service
-# Get your API key from: https://www.runninghub.cn/?inviteCode=rh-v1052
-# Use one of these URLs:
-# 24G GPU: https://www.runninghub.cn/proxy/YOUR_API_KEY
-# 48G GPU: https://www.runninghub.cn/proxy-plus/YOUR_API_KEY
-```
+**Option B: RunningHub Cloud** (Recommended for AI Agents)
+- Sign up: [https://www.runninghub.cn/](https://www.runninghub.cn/)
+- Get ComfyUI URL and API key
+- Copy the API format workflow URL
 
-### 3. Use in n8n
+### 3. Configure n8n Workflow
 
-Add the **ComfyUI** node to your workflow! It will automatically detect of best execution mode.
+1. Add a **ComfyUI** node
+2. Set **ComfyUI URL** (e.g., `http://127.0.0.1:8188`)
+3. Paste your **ComfyUI workflow JSON** (API format)
+4. Run!
 
 ---
 
-## How It Works
+## Features
 
 ### Execution Modes
 
-The ComfyUI node supports three execution modes:
+The node automatically detects how it's being executed:
 
-**Auto Detect** (default):
-- Automatically detects the best mode based on context
-- Uses Tool mode when called by AI Agents
-- Uses Action mode for regular workflows
+| Mode | When Used | Returns |
+|------|-----------|---------|
+| **Tool Mode** | Called by AI Agents | URLs only (no binary data) |
+| **Action Mode** | Regular workflow | Full binary data + URLs |
 
-**Tool Mode** (for AI Agents):
-```
-[Chat Input] → [AI Agent] → [ComfyUI]
-```
-- Detects AI Agent context
-- Returns image URLs (compact, LLM-friendly)
-- Supports URL image input
-- Dynamic parameter overrides
-- Optimized for AI Agent interactions
+You can also manually override the mode in node settings.
 
-**Action Mode** (for regular workflows):
-```
-[HTTP Request] → [ComfyUI] → [Save File]
-```
-- Used in standard workflows
-- Returns full binary data
-- Supports URL and binary image input
-- Full workflow integration
+### Dynamic Parameters
 
-### Detection Priority
+Override any workflow node parameter dynamically:
 
-When using Auto Detect mode, the node checks in this order:
-1. **n8n API** - Checks if called by AI Agent via `isToolExecution()`
-2. **Execution Context** - Checks for chat mode context
-3. **Input Data** - Checks for AI Agent markers in input data
-4. **Heuristics** - Analyzes input characteristics
-5. **Default** - Falls back to Action mode
+**Parameters:**
+- ✅ **Text** - Prompt text, seeds, etc.
+- ✅ **Number** - Steps, dimensions, batch size
+- ✅ **Boolean** - Toggle options
+- ✅ **File** - Images, videos, or audios (URL or binary)
 
-### Smart Warnings
-
-The node provides intelligent warnings when:
-- Manual mode selection conflicts with high-confidence detection
-- Helps prevent configuration mistakes
-- Always shows detection results for transparency
-
----
-
-## Parameters Explained
-
-### Main Parameters
-
-| Parameter | What It Does | Example |
-|-----------|--------------|---------|
-| **ComfyUI URL** | Where ComfyUI is running | `http://127.0.0.1:8188` (local) or `https://www.runninghub.cn/proxy/YOUR_API_KEY` (RunningHub) |
-| **Workflow JSON** | Your ComfyUI workflow (API format) | `{...}` |
-| **Timeout** | Max wait time for execution (seconds) | `300` (5 minutes) |
-| **Output Binary Key** | Property name for output binary data | `data` |
-| **Execution Mode** | Auto/Tool/Action mode selection | `Auto Detect` |
-| **Node Parameters** | Dynamic workflow parameter overrides | See below |
-
-### Node Parameters
-
-These allow you to dynamically override any value in your ComfyUI workflow.
-
-| Field | What It Does |
-|-------|--------------|
-| **Node ID** | The ComfyUI node to change (e.g., "6", "13") |
-| **Parameter Mode** | "Single" for one parameter, "Multiple" for JSON object |
-| **Type** | Text, Number, Boolean, Image, or File |
-| **Value** | The value to set (for single mode) |
-| **Image Input Type** | URL or Binary (for image or file type) |
-| **Image URL** | URL of image (when using URL input) |
-| **Parameters JSON** | JSON object with multiple parameters |
-
----
-
-## Usage Examples
-
-### Example 1: Generate Image with AI Agent
-
-**Workflow:**
-```
-[Chat Interface] → [AI Agent] → [ComfyUI]
-```
-
-**Setup:**
-1. Add ComfyUI to AI Agent tools
-2. Configure ComfyUI node:
-   - **ComfyUI URL**: `http://127.0.0.1:8188`
-   - **Workflow JSON**: Your text-to-image workflow
-   - **Execution Mode**: `Auto Detect`
-   - **Timeout**: `300`
-
-**Chat:**
-```
-You: Generate an image of a sunset over mountains
-
-AI: I'll generate that image for you!
-     [Automatically uses Tool mode]
-     Done! Here's your image 🎨
-     [Returns image URL]
-```
-
-**Output:**
+**Example:**
 ```json
 {
-  "success": true,
-  "imageUrls": ["http://127.0.0.1:8188/view?filename=image.png"],
-  "imageCount": 1
+  "nodeId": "6",
+  "parameterMode": "single",
+  "paramName": "width",
+  "type": "number",
+  "numberValue": 1024
 }
 ```
 
+### File Input
+
+Supports multiple input methods:
+
+**From URL:**
+- Downloads from HTTP/HTTPS URLs
+- Validates file type (image/video/audio)
+- Uploads to ComfyUI automatically
+
+**From Binary:**
+- Uses binary data from previous nodes
+- Auto-detects file type
+- Validates MIME type and size
+
+### Supported Formats
+
+**Images:** PNG, JPG, JPEG, WEBP, GIF, BMP, SVG
+**Videos:** MP4, WEBM, AVI, MOV, MKV, GIF
+**Audios:** MP3, WAV, OGG, FLAC, AAC, M4A, WMA, OPUS
+
+### Size Limits
+
+- Images: Up to 50MB
+- Videos: Up to 500MB
+- Audios: Up to 100MB
+
 ---
 
-### Example 2: Process Image in Workflow
+## Getting ComfyUI Workflow JSON
 
-**Workflow:**
-```
-[HTTP Request] → [ComfyUI] → [Save to File]
-```
+ComfyUI workflows are exported in API format:
 
-**Setup:**
-```
-ComfyUI URL: http://127.0.0.1:8188
-Workflow JSON: [Your image processing workflow]
-Execution Mode: Action Mode
+1. Open ComfyUI (`http://127.0.0.1:8188`)
+2. Design your workflow
+3. Click **Save (API Format)** button
+4. Copy the generated JSON
+5. Paste it in the n8n ComfyUI node
 
-Node Parameters:
-  Node ID: 107
-  Type: Image
-  Image Input Type: URL
-  Image URL: https://example.com/image.png
-```
+---
 
-**Output (Action mode with binary):**
+## Examples
+
+### Image Generation
+
 ```json
 {
-  "success": true,
-  "data": {...},
-  "binary": {
-    "data": {
-      "data": "base64_encoded_image",
-      "mimeType": "image/png",
-      "fileName": "ComfyUI_00001.png"
-    }
-  },
-  "imageCount": 1
-}
-```
-
----
-
-### Example 3: Dynamic Text Prompt
-
-**Setup:**
-```
-ComfyUI Node:
-  ComfyUI URL: http://127.0.0.1:8188
-  Workflow JSON: [Text-to-Image workflow]
-  Execution Mode: Auto Detect
-
-Node Parameters:
-  Node ID: 6 (CLIP Text node)
-  Type: Text
-  Value: {{ $json.prompt }}
-```
-
-**Input:**
-```json
-{ "prompt": "a cyberpunk city at night, neon lights" }
-```
-
----
-
-### Example 4: Multiple Parameters
-
-**Setup:**
-```
-Node Parameters:
-  Node ID: 3
-  Parameter Mode: Multiple Parameters
-  Parameters JSON:
-    {
-      "width": 1024,
-      "height": 1024,
-      "steps": 30,
-      "cfg_scale": 8
-    }
-```
-
----
-
-### Example 5: Generate Video
-
-Same as image generation, just use a video workflow!
-
-**Output:**
-```json
-{
-  "success": true,
-  "videoUrls": ["http://127.0.0.1:8188/view?filename=video.mp4"],
-  "videoCount": 1
-}
-```
-
----
-
-## How to Get Your Workflow JSON
-
-1. Open ComfyUI
-2. Create or load your workflow
-3. Click **"Save (API Format)"** (not "Save")
-4. Copy the JSON
-5. Paste it in the node's **Workflow JSON** field
-
----
-
-## RunningHub Cloud Service
-
-RunningHub provides cloud ComfyUI service that is fully compatible with this node.
-
-### Getting Started
-
-1. **Get Your API Key**
-   - **International users** (outside China): https://www.runninghub.ai/?inviteCode=rh-v1052
-   - **China mainland users**: https://www.runninghub.cn/?inviteCode=rh-v1052
-   - Register using either link above
-
-2. **Choose Your GPU Plan**
-   - 24G GPU: Standard performance
-   - 48G GPU: High performance (for complex workflows)
-
-3. **Configure ComfyUI Node**
-   - **International users**: Use one of:
-     - 24G: `https://www.runninghub.ai/proxy/YOUR_API_KEY`
-     - 48G: `https://www.runninghub.ai/proxy-plus/YOUR_API_KEY`
-   - **China mainland users**: Use one of:
-     - 24G: `https://www.runninghub.cn/proxy/YOUR_API_KEY`
-     - 48G: `https://www.runninghub.cn/proxy-plus/YOUR_API_KEY`
-   - Replace `YOUR_API_KEY` with your actual API key
-
-4. **Model Management**
-   - Browse models in RunningHub's model library
-   - Click "★" to favorite models you want to use
-   - Favorited models will be available in your workflows
-
-5. **🎁 Bonus Rewards**
-   - Use invite code `rh-v1052` when registering
-   - Get **1000 RH coins** as bonus reward
-   - Coins can be used for premium features on RunningHub
-   - Works for both international and China mainland users
-
-### Advantages of RunningHub
-
-- ✅ **No local setup required** - No need to install ComfyUI locally
-- ✅ **High performance** - Cloud GPUs with fast processing
-- ✅ **Easy integration** - Just change the URL in n8n
-- ✅ **Full compatibility** - Works exactly like local ComfyUI
-- ✅ **Model library** - Access to pre-installed models
-- ✅ **Auto-scaling** - Handles complex workflows automatically
-
-### Usage Tips
-
-- For simple workflows, 24G GPU is sufficient
-- For complex workflows (video, high-res images), use 48G GPU
-- The node automatically handles RunningHub's response format
-- Works in both Tool mode (URLs only) and Action mode (full binary)
-
----
-
-## Tips & Tricks
-
-### ✅ Find Your Node ID
-
-Open your workflow JSON and look for:
-```json
-{
-  "6": {
-    "inputs": {...},
+  "3": {
+    "inputs": {
+      "seed": 123456789,
+      "steps": 20,
+      "cfg": 8,
+      "sampler_name": "euler",
+      "scheduler": "normal",
+      "denoise": 1
+    },
     "class_type": "KSampler"
+  },
+  "6": {
+    "inputs": {
+      "text": "a beautiful sunset over the ocean",
+      "clip": ["4", 1]
+    },
+    "class_type": "CLIPTextEncode"
   }
 }
 ```
-The `"6"` is your Node ID!
 
-### ✅ URL vs Binary Input
+### Video Generation
 
-**Use URL when:**
-- Working with AI Agents (smaller context)
-- Images are publicly accessible
-- Processing multiple images
-- Tool Mode execution
+Use the same format with video-specific nodes in ComfyUI.
 
-**Use Binary when:**
-- Images are from previous n8n nodes
-- Working with local files
-- Need full image data in workflow
-- Action Mode execution
+### Audio Generation
 
-### ✅ Test First
+Use the same format with audio-specific nodes in ComfyUI.
 
-Always test your workflow in ComfyUI before using it in n8n!
+---
 
-### ✅ Use Appropriate Timeouts
+## Development
 
+```bash
+# Build
+npm run build
+
+# Lint
+npm run lint
+
+# Test
+npm test
+
+# Watch mode
+npm run dev
 ```
-Simple workflows:      60-120 seconds
-Complex workflows:     300-600 seconds
-Video generation:      600-1800 seconds
-```
-
-### ✅ Execution Mode Tips
-
-- Use **Auto Detect** for most cases
-- Use **Tool Mode** when specifically working with AI Agents
-- Use **Action Mode** for standard workflow processing
-- Check n8n logs for detection results and warnings
 
 ---
 
-## Troubleshooting
+## Contributing
 
-### "Invalid ComfyUI URL"
-- Make sure ComfyUI is running
-- Check the URL format: `http://127.0.0.1:8188` or `http://localhost:8188`
-
-### "Workflow execution timeout"
-- Increase the timeout value in node settings
-- Check if ComfyUI is processing the workflow
-
-### "Node ID not found"
-- Check your workflow JSON
-- Node IDs are strings like "6", "3", "13"
-- Make sure the node exists in your workflow
-
-### "Failed to download image"
-- Make sure to URL is publicly accessible
-- Cannot use localhost URLs in Tool mode
-- Check network connectivity
-
-### "Workflow execution cancelled"
-- Task was cancelled by user or system
-- Check n8n logs for cancellation details
-- This is normal behavior and not an error
-
-### "Binary property not found"
-- Check the previous node's "Output Binary Key" setting
-- Make sure binary data exists in input
-- Verify the property name matches
-
-### "AI Agent doesn't call ComfyUI"
-- Make sure ComfyUI is added to Agent's tools
-- Check the workflow JSON is set
-- Try being more specific in your chat: "Generate an image of..." instead of "Help me with images"
-
-### "Tool mode doesn't support binary input"
-- Use URL input instead of binary in Tool mode
-- Or switch to Action mode if you need binary support
-
----
-
-## Architecture & Improvements
-
-### Recent Enhancements (v2.4.15)
-
-**🎯 Execution Mode Control**
-- Auto Detect mode for smart detection
-- Manual Tool/Action mode override
-- Intelligent warnings on mode conflicts
-
-**🤖 Smart Mode Detection**
-- Primary: n8n API `isToolExecution()`
-- Secondary: Execution context (chat mode)
-- Tertiary: AI Agent metadata markers
-- Fallback: Heuristic analysis
-- Default: Action mode
-
-**📦 Modular Architecture**
-- `ImageProcessor` - Dedicated image handling
-- `ParameterTypeHandler` - Type conversion logic
-- `ParameterProcessor` - Main coordinator
-- `executionModeDetector` - Multi-layer mode detection
-- `ComfyUiClient` - HTTP client with retry logic
-
-**✅ Code Quality**
-- ESLint v9 flat config
-- Zero non-null assertions
-- Comprehensive type validation
-- All ES6 imports
-- Config object pattern
-
----
-
-## What's New
-
-### Latest Updates (v2.4.15+)
-
-**Bug Fixes** (Commit: 3891f1b1):
-- ✅ Fixed video processing loop index error
-- ✅ Added null check for videoBuffer to prevent undefined errors
-- ✅ Tool mode and Action mode now have identical UI (both support parameters)
-
-**Recent Enhancements**:
-- ✅ Execution Mode parameter (Auto/Tool/Action)
-- ✅ Multi-layer detection strategy (5 levels)
-- ✅ Smart warning system for mode conflicts
-- ✅ UI text optimization
-
----
-
-## Need Help?
-
-- 📖 [n8n Documentation](https://docs.n8n.io)
-- 💬 [n8n Community](https://community.n8n.io)
-- 🐛 [Report Issues](https://github.com/ksxh0524/n8n-nodes-comfyui-all/issues)
-- 📧 Email: ksxh0524@outlook.com
+Contributions are welcome! Please read the contributing guidelines.
 
 ---
 
 ## License
 
-MIT
+MIT License - see [LICENSE](LICENSE) for details.
 
 ---
 
-**Happy automating with ComfyUI! 🚀**
+## Links
+
+- Repository: https://github.com/bitspring/n8n-nodes-comfyui-all
+- n8n Community: https://community.n8n.io
+- ComfyUI: https://github.com/comfyanonymous/ComfyUI
+
+---
+
+## Changelog
+
+### v2.5.2
+
+- ✨ Added audio support (input/output)
+- 🐛 Fixed TypeScript compilation issues
+- 📝 Updated documentation
+
+### v2.5.1
+
+- ✨ Video and GIF support
+- ✨ Auto-detection for execution mode
+- 🐛 Bug fixes
+
+### v2.5.0
+
+- ✨ AI Agent tool mode support
+- ✨ Dynamic parameter overrides
+- 🐛 Various improvements
+
+---
+
+## Related Projects
+
+- [ComfyUI](https://github.com/comfyanonymous/ComfyUI) - Powerful UI for Stable Diffusion
+- [n8n](https://n8n.io) - Workflow automation tool
+- [RunningHub](https://www.runninghub.cn/) - ComfyUI cloud service
+
+---
+
+## Support
+
+- GitHub Issues: https://github.com/bitspring/n8n-nodes-comfyui-all/issues
+- n8n Community Forum: https://community.n8n.io
+
+---
+
+## Star History
+
+[![Star History Chart](https://api.star-history.com/svg?repos=bitspring/n8n-nodes-comfyui-all&type=Timeline)](https://star-history.com/#bitspring/n8n-nodes-comfyui-all&Timeline)

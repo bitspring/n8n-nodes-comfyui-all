@@ -1,7 +1,7 @@
 {
-  "name": "n8n-nodes-comfyui-all",
+  "name": "n8n-nodes-comfyui-aio",
   "version": "2.5.2",
-  "description": "n8n community nodes for ComfyUI workflow execution with dynamic parameter support",
+  "description": "n8n community nodes for ComfyUI workflow execution with dynamic parameter support (All-In-One: images, videos, and audios)",
   "keywords": [
     "n8n-community-node-package",
     "n8n",
@@ -9,7 +9,9 @@
     "stable-diffusion",
     "image-generation",
     "video-generation",
-    "langchain"
+    "audio-generation",
+    "langchain",
+    "aio"
   ],
   "license": "MIT",
   "author": {
@@ -18,11 +20,11 @@
   },
   "repository": {
     "type": "git",
-    "url": "git+https://github.com/ksxh0524/n8n-nodes-comfyui-all.git"
+    "url": "https://github.com/bitspring/n8n-nodes-comfyui-all.git"
   },
-  "homepage": "https://github.com/ksxh0524/n8n-nodes-comfyui-all#readme",
+  "homepage": "https://github.com/bitspring/n8n-nodes-comfyui-all#readme",
   "bugs": {
-    "url": "https://github.com/ksxh0524/n8n-nodes-comfyui-all/issues"
+    "url": "https://github.com/bitspring/n8n-nodes-comfyui-all/issues"
   },
   "main": "dist/index.js",
   "exports": {
