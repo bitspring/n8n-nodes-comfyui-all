@@ -38,6 +38,7 @@ export const VALIDATION = {
   MAX_PROMPT_LENGTH: 10000,
   MAX_IMAGE_SIZE_MB: 50,
   MAX_VIDEO_SIZE_MB: 500,
+  MAX_AUDIO_SIZE_MB: 100,
   MAX_SEED: 2147483647,
   MIN_FRAMES:1,
   MAX_FRAMES: 128,
@@ -128,6 +129,17 @@ export const VIDEO_MIME_TYPES: Record<string, string> = {
   'mov': 'video/quicktime',
   'mkv': 'video/x-matroska',
   'gif': 'video/gif',
+} as const;
+
+export const AUDIO_MIME_TYPES: Record<string, string> = {
+  'mp3': 'audio/mpeg',
+  'wav': 'audio/wav',
+  'ogg': 'audio/ogg',
+  'flac': 'audio/flac',
+  'aac': 'audio/aac',
+  'm4a': 'audio/mp4',
+  'wma': 'audio/x-ms-wma',
+  'opus': 'audio/opus',
 } as const;
 
 // Parameter type constants

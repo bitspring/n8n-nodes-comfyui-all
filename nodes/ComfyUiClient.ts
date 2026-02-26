@@ -1,8 +1,8 @@
 import { randomUUID } from 'crypto';
-import { VALIDATION, DELAY_CONFIG, IMAGE_MIME_TYPES, VIDEO_MIME_TYPES } from './constants';
+import { VALIDATION, DELAY_CONFIG, IMAGE_MIME_TYPES, VIDEO_MIME_TYPES, AUDIO_MIME_TYPES } from './constants';
 import { IExecuteFunctions } from 'n8n-workflow';
 import { Logger } from './logger';
-import { extractImageFileInfo, extractVideoFileInfo, validateMimeType, getMaxImageSizeBytes, getMaxVideoSizeBytes, formatBytes } from './utils';
+import { extractImageFileInfo, extractVideoFileInfo, extractAudioFileInfo, validateMimeType, getMaxImageSizeBytes, getMaxVideoSizeBytes, getMaxAudioSizeBytes, formatBytes } from './utils';
 import { HttpError, BinaryData, JsonData, ProcessOutput } from './types';
 import { HttpClient } from './HttpClient';
 import { N8nHelpersAdapter } from './N8nHelpersAdapter';
@@ -173,6 +173,7 @@ export interface WorkflowResult {
   success: boolean;
   images?: string[];
   videos?: string[];
+  audios?: string[];
   output?: Record<string, unknown>;
   error?: string;
   errorDetails?: Record<string, unknown>;
@@ -657,20 +658,21 @@ export class ComfyUIClient {
   }
 
   /**
-   * Extract image and video results from workflow outputs
+   * Extract image, video and audio results from workflow outputs
    *
    * Note: The `outputs` parameter uses `WorkflowOutputs` type because ComfyUI API responses
    * have a dynamic structure that is not guaranteed. Different ComfyUI nodes
    * may return different output formats, and we need to handle this flexibility.
    *
    * @param outputs - Raw output data from ComfyUI (format is not guaranteed, using WorkflowOutputs for flexibility)
-   * @returns WorkflowResult with extracted images and videos
+   * @returns WorkflowResult with extracted images, videos and audios
    */
   private extractResults(outputs: unknown): WorkflowResult {
     const result: WorkflowResult = {
       success: true,
       images: [],
       videos: [],
+      audios: [],
       output: outputs as Record<string, unknown>,
     };
 
@@ -683,7 +685,7 @@ export class ComfyUIClient {
         continue;
       }
 
-      const nodeOutputObj = nodeOutput as { images?: unknown[]; videos?: unknown[]; gifs?: unknown[] };
+      const nodeOutputObj = nodeOutput as { images?: unknown[]; videos?: unknown[]; gifs?: unknown[]; audios?: unknown[] };
 
       if (nodeOutputObj.images && Array.isArray(nodeOutputObj.images)) {
         for (const image of nodeOutputObj.images) {
@@ -697,6 +699,9 @@ export class ComfyUIClient {
           if (VIDEO_MIME_TYPES[ext]) {
             this.logger.info(`🎬 Found video in images array: ${imageObj.filename} (node ${nodeId})`);
             result.videos?.push(imageUrl);
+          } else if (AUDIO_MIME_TYPES[ext]) {
+            this.logger.info(`🎵 Found audio in images array: ${imageObj.filename} (node ${nodeId})`);
+            result.audios?.push(imageUrl);
           } else {
             this.logger.info(`🖼️  Found image in images array: ${imageObj.filename} (node ${nodeId})`);
             result.images?.push(imageUrl);
@@ -721,6 +726,15 @@ export class ComfyUIClient {
           result.videos?.push(videoUrl);
         }
       }
+
+      if (nodeOutputObj.audios && Array.isArray(nodeOutputObj.audios)) {
+        this.logger.info(`🎵 Found ${nodeOutputObj.audios.length} audios in node ${nodeId}`);
+        for (const audio of nodeOutputObj.audios) {
+          const audioObj = audio as { filename: string; subfolder?: string; type: string };
+          const audioUrl = `/view?filename=${audioObj.filename}&subfolder=${audioObj.subfolder || ''}&type=${audioObj.type}`;
+          result.audios?.push(audioUrl);
+        }
+      }
     }
 
     if (result.images && result.images.length > 0) {
@@ -729,6 +743,10 @@ export class ComfyUIClient {
 
     if (result.videos && result.videos.length > 0) {
       this.logger.info(`Total videos: ${result.videos.length}`);
+    }
+
+    if (result.audios && result.audios.length > 0) {
+      this.logger.info(`Total audios: ${result.audios.length}`);
     }
 
     return result;
@@ -780,10 +798,12 @@ export class ComfyUIClient {
     const ext = filename.split('.').pop()?.toLowerCase() || '';
     const imageMimeType = IMAGE_MIME_TYPES[ext];
     const videoMimeType = VIDEO_MIME_TYPES[ext];
-    const mimeType = videoMimeType || imageMimeType || 'image/png';
+    const audioMimeType = AUDIO_MIME_TYPES[ext];
+    const mimeType = audioMimeType || videoMimeType || imageMimeType || 'image/png';
 
     // Validate file size based on type
-    const maxSize = videoMimeType ? getMaxVideoSizeBytes() : getMaxImageSizeBytes();
+    const maxSize = audioMimeType ? getMaxAudioSizeBytes() :
+                   videoMimeType ? getMaxVideoSizeBytes() : getMaxImageSizeBytes();
     if (imageData.length > maxSize) {
       throw new Error(
         `File size (${formatBytes(imageData.length)}) exceeds maximum allowed size of ${formatBytes(maxSize)}`
@@ -859,11 +879,11 @@ export class ComfyUIClient {
   /**
    * Get buffer from ComfyUI server (internal method)
    * @param path - Path to the resource on ComfyUI server
-   * @param resourceType - Type of resource ('image' or 'video')
+   * @param resourceType - Type of resource ('image', 'video' or 'audio')
    * @returns Promise containing resource data as Buffer
    * @throws Error if resource retrieval fails
    */
-  private async getBuffer(path: string, resourceType: 'image' | 'video'): Promise<Buffer> {
+  private async getBuffer(path: string, resourceType: 'image' | 'video' | 'audio'): Promise<Buffer> {
     try {
       if (this.isClientDestroyed()) {
         throw new Error('Client has been destroyed');
@@ -876,8 +896,9 @@ export class ComfyUIClient {
       const buffer = Buffer.from(response);
 
       // Validate buffer size based on resource type
-      const maxSize = resourceType === 'video' ? getMaxVideoSizeBytes() : getMaxImageSizeBytes();
-      const maxSizeLabel = resourceType === 'video' ? '500MB' : '50MB';
+      const maxSize = resourceType === 'audio' ? getMaxAudioSizeBytes() :
+                     resourceType === 'video' ? getMaxVideoSizeBytes() : getMaxImageSizeBytes();
+      const maxSizeLabel = resourceType === 'audio' ? '100MB' : resourceType === 'video' ? '500MB' : '50MB';
       if (buffer.length > maxSize) {
         const resourceTypeLabel = resourceType.charAt(0).toUpperCase() + resourceType.slice(1);
         throw new Error(
@@ -912,6 +933,16 @@ export class ComfyUIClient {
   }
 
   /**
+   * Get audio buffer from ComfyUI server
+   * @param audioPath - Path to the audio on ComfyUI server
+   * @returns Promise containing audio data as Buffer
+   * @throws Error if audio retrieval fails
+   */
+  async getAudioBuffer(audioPath: string): Promise<Buffer> {
+    return this.getBuffer(audioPath, 'audio');
+  }
+
+  /**
    * Get multiple image buffers concurrently from ComfyUI server
    * Uses batching to prevent memory overflow with many images
    * @param imagePaths - Array of paths to the images on ComfyUI server
@@ -934,19 +965,30 @@ export class ComfyUIClient {
   }
 
   /**
+   * Get multiple audio buffers concurrently from ComfyUI server
+   * Uses batching to prevent memory overflow with many audios
+   * @param audioPaths - Array of paths to the audios on ComfyUI server
+   * @returns Promise containing array of audio data as Buffers
+   * @throws Error if any audio retrieval fails
+   */
+  async getAudioBuffers(audioPaths: string[]): Promise<Buffer[]> {
+    return this.getBuffersInBatches(audioPaths, 'audio');
+  }
+
+  /**
    * Get multiple buffers in batches to prevent memory overflow
    * This method processes resources in small batches (default: 3) to avoid
    * loading all buffers into memory simultaneously, which could cause
    * memory issues with large files (e.g., 10 images × 50MB = 500MB).
    *
    * @param paths - Array of paths to the resources on ComfyUI server
-   * @param resourceType - Type of resource ('image' or 'video')
+   * @param resourceType - Type of resource ('image', 'video' or 'audio')
    * @returns Promise containing array of resource data as Buffers
    * @throws Error if any resource retrieval fails
    */
   private async getBuffersInBatches(
     paths: string[],
-    resourceType: 'image' | 'video'
+    resourceType: 'image' | 'video' | 'audio'
   ): Promise<Buffer[]> {
     const allBuffers: Buffer[] = [];
     const batchSize = VALIDATION.CONCURRENT_DOWNLOAD_BATCH_SIZE as number;
@@ -967,7 +1009,9 @@ export class ComfyUIClient {
 
       // Download batch concurrently
       const batchPromises = batch.map(path =>
-        resourceType === 'image' ? this.getImageBuffer(path) : this.getVideoBuffer(path)
+        resourceType === 'image' ? this.getImageBuffer(path) :
+        resourceType === 'video' ? this.getVideoBuffer(path) :
+        this.getAudioBuffer(path)
       );
 
       const batchBuffers = await Promise.all(batchPromises);
@@ -1047,11 +1091,17 @@ export class ComfyUIClient {
       this.logger.info(`🎬 Generated ${result.videos.length} video URLs`);
     }
 
+    if (result.audios && result.audios.length > 0) {
+      jsonData.audios = result.audios;
+      jsonData.audioUrls = result.audios.map(aud => `${this.baseUrl}${aud}`);
+      this.logger.info(`🎵 Generated ${result.audios.length} audio URLs`);
+    }
+
     const binaryData: Record<string, BinaryData> = {};
     const bufferTracker = new BufferTracker(VALIDATION.MAX_TOTAL_IMAGE_MEMORY_MB * 1024 * 1024);
 
     try {
-      const totalFiles = (result.images?.length || 0) + (result.videos?.length || 0);
+      const totalFiles = (result.images?.length || 0) + (result.videos?.length || 0) + (result.audios?.length || 0);
       const useIndex = totalFiles > 1;
       let fileIndex = 0;
 
@@ -1123,6 +1173,43 @@ export class ComfyUIClient {
 
         jsonData.videoCount = result.videos.length;
         this.logger.info(`✅ Successfully processed ${result.videos.length} videos`);
+      }
+
+      if (result.audios && result.audios.length > 0) {
+        this.logger.info(`Downloading ${result.audios.length} audios...`);
+
+        const audioBuffers = await this.getAudioBuffers(result.audios);
+
+        for (let i = 0; i < result.audios.length; i++) {
+          const audioPath = result.audios[i];
+          const audioBuffer = audioBuffers[i];
+
+          if (!audioBuffer) {
+            this.logger.warn(`Audio buffer at index ${i} is undefined, skipping`);
+            continue;
+          }
+
+          if (!bufferTracker.track(audioBuffer)) {
+            throw new Error(`Memory limit exceeded while processing audio ${i + 1}`);
+          }
+
+          const fileInfo = extractAudioFileInfo(audioPath, 'mp3');
+          const mimeType = validateMimeType(fileInfo.mimeType, AUDIO_MIME_TYPES);
+
+          const binaryKey = useIndex ? `${outputBinaryKey}_${fileIndex++}` : outputBinaryKey;
+          binaryData[binaryKey] = {
+            data: audioBuffer.toString('base64'),
+            mimeType: mimeType,
+            fileName: fileInfo.filename,
+            fileSize: audioBuffer.length.toString(),
+            fileExtension: fileInfo.extension,
+          };
+
+          bufferTracker.untrack(audioBuffer);
+        }
+
+        jsonData.audioCount = result.audios.length;
+        this.logger.info(`✅ Successfully processed ${result.audios.length} audios`);
       }
 
       this.logger.debug('Buffer tracking statistics:', bufferTracker.getStats());

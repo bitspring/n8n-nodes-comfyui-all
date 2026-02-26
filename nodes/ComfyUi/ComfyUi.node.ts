@@ -25,7 +25,7 @@ export class ComfyUi {
     group: ['transform'],
     version: [1],
     defaultVersion: 1,
-    description: 'Generate images, videos, and more using ComfyUI.',
+    description: 'Generate images, videos, audios and more using ComfyUI.',
     defaults: {
       name: 'ComfyUI',
     },
@@ -50,6 +50,8 @@ export class ComfyUi {
         success: true,
         images: [],
         imageUrls: [],
+        audios: [],
+        audioUrls: [],
         executionMode: 'auto',
       },
       binary: {
@@ -220,7 +222,7 @@ export class ComfyUi {
 													{
 														name: 'File',
 														value: 'file',
-														description: 'Image or video file (from binary data or URL)',
+														description: 'Image, video or audio file (from binary data or URL)',
 													},
 													],
 												displayOptions: {
@@ -259,7 +261,7 @@ export class ComfyUi {
 												name: 'imageUrl',
 												type: 'string',
 												default: '',
-												description: 'URL of the image or video to download and upload to ComfyUI',
+												description: 'URL of the image, video or audio to download and upload to ComfyUI',
 												placeholder: 'https://example.com/file.mp4',
 												displayOptions: {
 													show: {
@@ -533,8 +535,10 @@ export class ComfyUi {
             success: true,
             imageUrls: result.images ? result.images.map(img => `${comfyUiUrl}${img}`) : [],
             videoUrls: result.videos ? result.videos.map(vid => `${comfyUiUrl}${vid}`) : [],
+            audioUrls: result.audios ? result.audios.map(aud => `${comfyUiUrl}${aud}`) : [],
             imageCount: result.images?.length || 0,
             videoCount: result.videos?.length || 0,
+            audioCount: result.audios?.length || 0,
           },
         };
       } else {
@@ -549,6 +553,7 @@ export class ComfyUi {
       logger.info('Workflow execution succeeded', {
         imageCount: outputData.json.imageCount || 0,
         videoCount: outputData.json.videoCount || 0,
+        audioCount: outputData.json.audioCount || 0,
       });
 
       return [this.helpers.constructExecutionMetaData(

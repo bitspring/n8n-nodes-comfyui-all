@@ -123,6 +123,11 @@ export interface NodeOutput {
     subfolder?: string;
     type: string;
   }>;
+  audios?: Array<{
+    filename: string;
+    subfolder?: string;
+    type: string;
+  }>;
 }
 
 /**
@@ -154,8 +159,11 @@ export interface JsonData extends IDataObject {
   imageUrls?: string[];
   videos?: string[];
   videoUrls?: string[];
+  audios?: string[];
+  audioUrls?: string[];
   imageCount?: number;
   videoCount?: number;
+  audioCount?: number;
 }
 
 /**

@@ -3,7 +3,7 @@
  */
 
 import { randomUUID } from 'crypto';
-import { IMAGE_MIME_TYPES, VIDEO_MIME_TYPES, VALIDATION } from './constants';
+import { IMAGE_MIME_TYPES, VIDEO_MIME_TYPES, AUDIO_MIME_TYPES, VALIDATION } from './constants';
 
 export interface FileInfo {
   filename: string;
@@ -130,6 +130,27 @@ export function extractVideoFileInfo(path: string, defaultExt: string = 'mp4'): 
 }
 
 /**
+ * Extract file information for audio
+ * @param path - File path
+ * @param defaultExt - Default extension
+ * @returns File information with audio MIME type
+ */
+export function extractAudioFileInfo(path: string, defaultExt: string = 'mp3'): FileInfo {
+  const fileInfo = extractFileInfo(path, defaultExt);
+
+  // Ensure the MIME type is an audio type
+  if (!Object.values(AUDIO_MIME_TYPES).includes(fileInfo.mimeType)) {
+    // If the detected MIME type is not an audio, use the default extension
+    const defaultMime = AUDIO_MIME_TYPES[defaultExt];
+    if (defaultMime) {
+      fileInfo.mimeType = defaultMime;
+    }
+  }
+
+  return fileInfo;
+}
+
+/**
  * Validate and sanitize filename
  * @param filename - The filename to validate
  * @returns Sanitized filename
@@ -244,6 +265,14 @@ export function getMaxVideoSizeBytes(): number {
 }
 
 /**
+ * Get maximum audio size in bytes
+ * @returns Maximum size in bytes (from VALIDATION.MAX_AUDIO_SIZE_MB)
+ */
+export function getMaxAudioSizeBytes(): number {
+  return (VALIDATION.MAX_AUDIO_SIZE_MB as number) * 1024 * 1024;
+}
+
+/**
  * Get maximum Base64 encoded length for an image
  * Base64 encoding increases size by approximately 33% (4/3 ratio)
  * @returns Maximum Base64 length in bytes
@@ -259,6 +288,15 @@ export function getMaxBase64Length(): number {
  */
 export function getMaxVideoBase64Length(): number {
   return getMaxVideoSizeBytes() * 4 / 3;
+}
+
+/**
+ * Get maximum Base64 encoded length for an audio
+ * Base64 encoding increases size by approximately 33% (4/3 ratio)
+ * @returns Maximum Base64 length in bytes
+ */
+export function getMaxAudioBase64Length(): number {
+  return getMaxAudioSizeBytes() * 4 / 3;
 }
 
 /**
