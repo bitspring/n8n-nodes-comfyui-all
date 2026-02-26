@@ -38,9 +38,11 @@ export interface DetectionResult {
  * @returns True if called as AI Agent tool
  */
 function isToolExecutionByApi(executeFunctions: IExecuteFunctions): boolean {
-  if (typeof executeFunctions.isToolExecution === 'function') {
+  // Use type assertion since isToolExecution may not be in type definitions
+  const execFunc = executeFunctions as { isToolExecution?: () => boolean };
+  if (typeof execFunc.isToolExecution === 'function') {
     try {
-      return executeFunctions.isToolExecution();
+      return execFunc.isToolExecution();
     } catch {
       return false;
     }

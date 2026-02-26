@@ -1,5 +1,5 @@
 /**
- * Image Processor - Handles image and video parameter processing
+ * Image Processor - Handles image, video and audio parameter processing
  * Supports both URL download and binary data upload
  */
 
@@ -7,8 +7,8 @@ import { IExecuteFunctions, NodeOperationError } from 'n8n-workflow';
 import type { BinaryData } from '../types';
 import { Logger } from '../logger';
 import { validateUrl } from '../validation';
-import { generateUniqueFilename, getMaxVideoSizeBytes, getMaxImageSizeBytes, formatBytes, getMaxBase64Length } from '../utils';
-import { IMAGE_MIME_TYPES, VIDEO_MIME_TYPES, BASE64_DECODE_FACTOR } from '../constants';
+import { generateUniqueFilename, getMaxVideoSizeBytes, getMaxImageSizeBytes, getMaxAudioSizeBytes, formatBytes, getMaxBase64Length } from '../utils';
+import { IMAGE_MIME_TYPES, VIDEO_MIME_TYPES, AUDIO_MIME_TYPES, BASE64_DECODE_FACTOR } from '../constants';
 
 export interface ImageProcessorConfig {
   executeFunctions: IExecuteFunctions;
@@ -258,13 +258,15 @@ export class ImageProcessor {
    */
   private validateFileSize(buffer: Buffer, index: number, mimeType: string): void {
     // Determine max size based on file type
+    const isAudio = Object.values(AUDIO_MIME_TYPES).includes(mimeType);
     const isVideo = Object.values(VIDEO_MIME_TYPES).includes(mimeType);
-    const maxSize = isVideo ? getMaxVideoSizeBytes() : getMaxImageSizeBytes();
+    const maxSize = isAudio ? getMaxAudioSizeBytes() : isVideo ? getMaxVideoSizeBytes() : getMaxImageSizeBytes();
 
     if (buffer.length > maxSize) {
+      const fileType = isAudio ? 'audio' : isVideo ? 'video' : 'image';
       throw new NodeOperationError(
         this.executeFunctions.getNode(),
-        `Node Parameters ${index + 1}: Downloaded file size (${formatBytes(buffer.length)}) exceeds maximum allowed size of ${formatBytes(maxSize)}`
+        `Node Parameters ${index + 1}: Downloaded ${fileType} size (${formatBytes(buffer.length)}) exceeds maximum allowed size of ${formatBytes(maxSize)}`
       );
     }
   }
@@ -291,7 +293,8 @@ export class ImageProcessor {
   private getMimeTypeFromExtension(ext: string): string {
     const imageMimeType = IMAGE_MIME_TYPES[ext];
     const videoMimeType = VIDEO_MIME_TYPES[ext];
-    return videoMimeType || imageMimeType || 'image/png';
+    const audioMimeType = AUDIO_MIME_TYPES[ext];
+    return audioMimeType || videoMimeType || imageMimeType || 'image/png';
   }
 
   /**
@@ -372,7 +375,7 @@ export class ImageProcessor {
     }
 
     const mimeType = binaryData.mimeType.toLowerCase();
-    const allowedMimeTypes = [...Object.values(IMAGE_MIME_TYPES), ...Object.values(VIDEO_MIME_TYPES)];
+    const allowedMimeTypes = [...Object.values(IMAGE_MIME_TYPES), ...Object.values(VIDEO_MIME_TYPES), ...Object.values(AUDIO_MIME_TYPES)];
 
     if (!allowedMimeTypes.includes(mimeType)) {
       throw new NodeOperationError(
@@ -403,13 +406,15 @@ export class ImageProcessor {
    */
   private validateDecodedBuffer(buffer: Buffer, binaryPropertyName: string, index: number, mimeType?: string): void {
     // Determine max size based on file type
+    const isAudio = mimeType ? Object.values(AUDIO_MIME_TYPES).includes(mimeType) : false;
     const isVideo = mimeType ? Object.values(VIDEO_MIME_TYPES).includes(mimeType) : false;
-    const maxBufferSize = isVideo ? getMaxVideoSizeBytes() : getMaxImageSizeBytes();
+    const maxBufferSize = isAudio ? getMaxAudioSizeBytes() : isVideo ? getMaxVideoSizeBytes() : getMaxImageSizeBytes();
 
     if (buffer.length > maxBufferSize) {
+      const fileType = isAudio ? 'audio' : isVideo ? 'video' : 'image';
       throw new NodeOperationError(
         this.executeFunctions.getNode(),
-        `Node Parameters ${index + 1}: Decoded buffer for "${binaryPropertyName}" (${formatBytes(buffer.length)}) exceeds maximum allowed size of ${formatBytes(maxBufferSize)}`
+        `Node Parameters ${index + 1}: Decoded ${fileType} buffer for "${binaryPropertyName}" (${formatBytes(buffer.length)}) exceeds maximum allowed size of ${formatBytes(maxBufferSize)}`
       );
     }
   }
